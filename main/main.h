@@ -8,7 +8,7 @@
 #define MAX_CMD_BUFFER 128
 #define MAX_SEND_BUFFER 2048
 
-#define BT_NAME "maxwell-remote"
+#define BT_NAME "wireless-bridge"
 // At least this number of ms must elapse between each
 // character of the escape sequence for it to be counted; this
 // is done to prevent legitimate occurrences of the escape sequence
