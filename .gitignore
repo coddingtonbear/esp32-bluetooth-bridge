@@ -22,3 +22,7 @@ _saved_*
 .vscode/launch.json
 build/
 sdkconfig.old
+programming/bin/*
+programming/include/*
+programming/lib/*
+programming/share/*
