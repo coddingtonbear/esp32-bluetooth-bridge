@@ -1,5 +1,7 @@
 #include "SerialCommand.h"
-
+#include "commands.h"
+#include "libb64/cdecode.h"
+#include "esp_ota_ops.h"
 #include "commands.h"
 #include "main.h"
 
@@ -10,6 +12,7 @@ bool monitorEnabled = false;
 bool escapeEnabled = false;
 
 void setupCommands() {
+    commands.addCommand("flash_esp32", flashEsp32);
     commands.addCommand("flash_uc", flashUC);
     commands.addCommand("reset_uc", resetUC);
     commands.addCommand("boot0", boot0);
@@ -114,4 +117,92 @@ void flashUC() {
     resetUC();
     delay(500);
     digitalWrite(PIN_CONNECTED, LOW);
+}
+
+void flashEsp32() {
+    CmdSerial.println("<OTA flash>");
+    CmdSerial.flush();
+    esp_err_t err;
+    esp_ota_handle_t update_handle = 0;
+
+    const esp_partition_t *configured = esp_ota_get_boot_partition();
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    const esp_partition_t *update_partition = NULL;
+
+    uint32_t last_data = millis();
+    uint32_t data_count = 0;
+
+    CmdSerial.disableInterface(&UCSerial);
+    if(configured != running) {
+        CmdSerial.println("Warning: OTA boot partition does not match running partition.");
+    }
+
+    char otaReadData[OTA_BUFFER_SIZE + 1] = {0};
+    char otaWriteData[OTA_BUFFER_SIZE + 1] = {0};
+    uint16_t bufferLength = 0;
+    uint16_t bytesDecoded = 0;
+
+    update_partition = esp_ota_get_next_update_partition(NULL);
+    err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
+    if (err != ESP_OK) {
+        CmdSerial.print("Error beginning OTA update: ");
+        CmdSerial.println(esp_err_to_name(err));
+        goto cleanUp;
+    }
+    CmdSerial.println("<Ready for data>");
+    CmdSerial.flush();
+
+    while(true) {
+        while(!SerialBT.available()) {
+            if(millis() - last_data > 1000) {
+                goto updateReady;
+            }
+        }
+
+        uint bytesRead = SerialBT.readBytesUntil('\n', otaReadData, OTA_BUFFER_SIZE);
+        last_data = millis();
+
+        if(bytesRead == 0) {
+            continue;
+        }
+
+        base64_decodestate decodeState;
+        base64_init_decodestate(&decodeState);
+        bytesDecoded = base64_decode_block(otaReadData, bytesRead, otaWriteData, &decodeState);
+        bufferLength += bytesDecoded;
+
+        err = esp_ota_write(update_handle, otaWriteData, bytesDecoded);
+        if(err != ESP_OK) {
+            CmdSerial.print("Could not write data: ");
+            CmdSerial.println(esp_err_to_name(err));
+            goto cleanUp;
+        }
+    }
+
+    updateReady:
+        CmdSerial.print(data_count);
+        CmdSerial.println(" bytes written");
+        err = esp_ota_end(update_handle);
+        if(err != ESP_OK) {
+            CmdSerial.print("Could not complete update: ");
+            CmdSerial.println(esp_err_to_name(err));
+            goto cleanUp;
+        }
+
+        err = esp_ota_set_boot_partition(update_partition);
+        if(err != ESP_OK) {
+            CmdSerial.print("Could not set boot partition: ");
+            CmdSerial.println(esp_err_to_name(err));
+            goto cleanUp;
+        }
+
+        CmdSerial.println("<completed: success>");
+        CmdSerial.flush();
+        esp_restart();
+
+    cleanUp:
+        CmdSerial.println("<completed: failure>");
+        CmdSerial.flush();
+        delay(10000);
+        esp_restart();
 }

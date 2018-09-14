@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include "BluetoothSerial.h"
 
+#include "esp_bt.h"
+
 #include "multiserial.h"
 #include "main.h"
 #include "commands.h"
@@ -33,9 +35,12 @@ void setup() {
     digitalWrite(PIN_CONNECTED, LOW);
     pinMode(UC_NRST, INPUT);
 
+    esp_bredr_tx_power_set(ESP_PWR_LVL_N0, ESP_PWR_LVL_P9);
+
     SerialBT.begin(BT_NAME);
     Serial.begin(115200);
     UCSerial.begin(230400, SERIAL_8E1, UC_RX, UC_TX);
+    UCSerial.setRxBufferSize(1024);
 
     CmdSerial.addInterface(&Serial);
     CmdSerial.addInterface(&SerialBT);
@@ -52,15 +57,22 @@ void setup() {
     CmdSerial.disableInterface(&SerialBT);
     CmdSerial.disableInterface(&UCSerial);
 
-    Serial.println("Bridge Started");
+    Serial.print("<Serial Bridge Ready: ");
+    Serial.print(BT_NAME);
+    Serial.println(">");
     commandPrompt();
 }
 
 void sendBufferNow() {
+    int sentBytes = 0;
     if(connected) {
         if(sendBuffer.length() > 0) {
-            SerialBT.write((const uint8_t*)sendBuffer.c_str(), sendBuffer.length());
-            delay(10);
+            while(sentBytes < sendBuffer.length()) {
+                sentBytes += SerialBT.write(
+                    &(((const uint8_t*)sendBuffer.c_str())[sentBytes]),
+                    sendBuffer.length() - sentBytes
+                );
+            }
         }
     }
     sendBuffer = "";
