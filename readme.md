@@ -69,7 +69,7 @@ default behavior of indicating whether a client is connected.
 
 * When called without an argument: returns the current state of the serial
   monitor.
-* when called with an argument of `0`: Turns serial monitoring off.
+* When called with an argument of `0`: Turns serial monitoring off.
 * When called with an argument of `1`: Turns serial monitoring on.
 
 Note that this is probably only useful if you are issuing commands
@@ -81,11 +81,11 @@ to the ESP32 unit's UART1 instead of communicating over Bluetooth.
   microcontroller's nRST pin by reconfiguring the corresponding ESP32
   pin as an input.
 * When called with an argument of `0`: Pulls nRST (`UC_NRST`) low.
-* When called with an argument of `0`: Pulls nRST (`UC_NRST`) high.
+* When called with an argument of `1`: Pulls nRST (`UC_NRST`) high.
 
 ### `unescape`
 
-Exits "escaped" mode if the microcontroller had previously recieved
+Exits "escaped" mode if the device had previously recieved
 the relevant escape sequence.  This is useful for allowing you to
 re-enable pass-through functionality after issuing an escape sequence
 to send your microcontroller a command.
@@ -147,7 +147,7 @@ Note that flashing is essentially 100% safe for an ESP32 module; the
 device's built-in Over-the-air programming functionality is cleverly
 designed and will not switch to the newly-programmed source unless it
 passes a verification procedure.  If the flashing process fails for any
-reason, the running code will remain unchanged.
+reason, the installed code will remain unchanged.
 
 ### Building the firmware
 
@@ -159,7 +159,8 @@ From your clone of this repository, run the following commands:
 
 ```
 cd programming
-virtualenv .
+virtualenv . --python=python3
+source bin/activate
 pip install -r requirements.txt
 cd ..
 ```
