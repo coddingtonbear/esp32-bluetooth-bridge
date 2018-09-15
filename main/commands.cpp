@@ -129,8 +129,7 @@ void flashEsp32() {
     const esp_partition_t *running = esp_ota_get_running_partition();
     const esp_partition_t *update_partition = NULL;
 
-    uint32_t last_data = millis();
-    uint32_t data_count = 0;
+    unsigned long last_data = millis();
 
     CmdSerial.disableInterface(&UCSerial);
     if(configured != running) {
@@ -150,11 +149,14 @@ void flashEsp32() {
         goto cleanUp;
     }
     CmdSerial.println("<Ready for data>");
-    CmdSerial.flush();
+    SerialBT.flush();
+    // pad last_data slightly to allow for a delayed start
+    last_data = millis() + 5000;
 
     while(true) {
         while(!SerialBT.available()) {
-            if(millis() - last_data > 1000) {
+            if(millis() > (last_data + 1000)) {
+                CmdSerial.println("<transmission ended>");
                 goto updateReady;
             }
         }
@@ -168,10 +170,10 @@ void flashEsp32() {
 
         base64_decodestate decodeState;
         base64_init_decodestate(&decodeState);
-        bytesDecoded = base64_decode_block(otaReadData, bytesRead, otaWriteData, &decodeState);
-        bufferLength += bytesDecoded;
+        bufferLength = base64_decode_block(otaReadData, bytesRead, otaWriteData, &decodeState);
+        bytesDecoded += bufferLength;
 
-        err = esp_ota_write(update_handle, otaWriteData, bytesDecoded);
+        err = esp_ota_write(update_handle, otaWriteData, bufferLength);
         if(err != ESP_OK) {
             CmdSerial.print("Could not write data: ");
             CmdSerial.println(esp_err_to_name(err));
@@ -180,7 +182,7 @@ void flashEsp32() {
     }
 
     updateReady:
-        CmdSerial.print(data_count);
+        CmdSerial.print(bytesDecoded);
         CmdSerial.println(" bytes written");
         err = esp_ota_end(update_handle);
         if(err != ESP_OK) {
@@ -198,11 +200,12 @@ void flashEsp32() {
 
         CmdSerial.println("<completed: success>");
         CmdSerial.flush();
+        delay(5000);
         esp_restart();
 
     cleanUp:
         CmdSerial.println("<completed: failure>");
         CmdSerial.flush();
-        delay(10000);
+        delay(5000);
         esp_restart();
 }
