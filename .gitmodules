@@ -1,3 +1,4 @@
 [submodule "components/arduino"]
 	path = components/arduino
-	url = https://github.com/espressif/arduino-esp32
+	url = https://github.com/coddingtonbear/arduino-esp32
+	branch = esp32-bluetooth-bridge-collected-patches

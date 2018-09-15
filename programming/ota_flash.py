@@ -169,11 +169,9 @@ if __name__ == '__main__':
             'to escaping the serial pass-through.  These are intended to '
             'be used as a way of preventing the pass-through microcontroller '
             'turning off the ESP32 unit during programming.  By default, '
-            'this sends `delay_bt_timeout 600`.'
+            'this sends nothing.'
         ),
-        default=[
-            'delay_bt_timeout 600'
-        ],
+        default=[],
         action='append',
     )
     parser.add_argument(

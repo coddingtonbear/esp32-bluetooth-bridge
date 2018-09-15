@@ -91,6 +91,7 @@ void loop() {
             Serial.println("<Client Connected>");
         } else {
             Serial.println("<Client Disconnected>");
+            unescape();
         }
         digitalWrite(PIN_CONNECTED, connected);
     }
