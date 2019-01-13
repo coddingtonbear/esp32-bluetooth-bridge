@@ -11,7 +11,7 @@
 // character of the escape sequence for it to be counted; this
 // is done to prevent legitimate occurrences of the escape sequence
 // occurring in binary causing us to enter the bridge mode.
-#define BT_CTRL_ESCAPE_SEQUENCE_INTERCHARACTER_DELAY 500
+#define BT_CTRL_ESCAPE_SEQUENCE_INTERCHARACTER_DELAY 250
 
 // For communicating with the microcontroller, we will transmit and
 // receive on the following pins.  Do not set these to match the pins
