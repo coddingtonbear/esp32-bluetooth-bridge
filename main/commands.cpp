@@ -7,15 +7,15 @@
 
 SerialCommand commands(&CmdSerial);
 
-bool boot0High = false;
-bool monitorEnabled = false;
+bool connectedHigh = false;
+bool monitorEnabled = true;
 bool escapeEnabled = false;
 
 void setupCommands() {
     commands.addCommand("flash_esp32", flashEsp32);
     commands.addCommand("flash_uc", flashUC);
     commands.addCommand("reset_uc", resetUC);
-    commands.addCommand("boot0", boot0);
+    commands.addCommand("connected", connected);
     commands.addCommand("monitor", monitorBridge);
     commands.addCommand("nrst", setRst);
     commands.addCommand("unescape", unescape);
@@ -46,8 +46,9 @@ void commandByte(char inChar) {
 }
 
 void unrecognized(const char *cmd) {
-    Serial.print("Unknown command: ");
-    Serial.println(cmd);
+    CmdSerial.print("<Unknown command: ");
+    CmdSerial.print(cmd);
+    CmdSerial.println(">");
 }
 
 bool monitorBridgeEnabled() {
@@ -85,20 +86,20 @@ void monitorBridge() {
     monitorEnabled = atoi(state);
 }
 
-void boot0() {
+void connected() {
     char* state = commands.next();
 
     if(state == NULL) {
-        Serial.println(boot0High ? "1": "0");
+        Serial.println(connectedHigh ? "1": "0");
         return;
     }
 
     int target = atoi(state);
     if(target) {
-        boot0High = true;
+        connectedHigh = true;
         digitalWrite(PIN_CONNECTED, HIGH);
     } else {
-        boot0High = false;
+        connectedHigh = false;
         digitalWrite(PIN_CONNECTED, LOW);
     }
 }

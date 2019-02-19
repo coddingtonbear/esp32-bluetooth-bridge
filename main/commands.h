@@ -14,7 +14,7 @@ void flashEsp32();
 void resetUC();
 void flashUC();
 void monitorBridge();
-void boot0();
+void connected();
 void setRst();
 void enableEscape();
 void unescape();

@@ -16,7 +16,8 @@ uint8_t BT_CTRL_ESCAPE_SEQUENCE_LENGTH = sizeof(BT_CTRL_ESCAPE_SEQUENCE)/sizeof(
 
 BluetoothSerial SerialBT;
 unsigned long lastSend = 0;
-bool connected = false;
+bool isConnected = false;
+bool btKeyHigh = false;
 String sendBuffer;
 String commandBuffer;
 
@@ -34,8 +35,6 @@ void setup() {
     pinMode(PIN_CONNECTED, OUTPUT);
     digitalWrite(PIN_CONNECTED, LOW);
     pinMode(UC_NRST, INPUT);
-
-    esp_bredr_tx_power_set(ESP_PWR_LVL_N0, ESP_PWR_LVL_P9);
 
     SerialBT.begin(BT_NAME);
     Serial.begin(115200);
@@ -61,11 +60,16 @@ void setup() {
     Serial.print(BT_NAME);
     Serial.println(">");
     commandPrompt();
+
+    #ifdef PIN_READY
+        digitalWrite(PIN_READY, HIGH);
+        pinMode(PIN_READY, OUTPUT);
+    #endif
 }
 
 void sendBufferNow() {
     int sentBytes = 0;
-    if(connected) {
+    if(isConnected) {
         if(sendBuffer.length() > 0) {
             while(sentBytes < sendBuffer.length()) {
                 sentBytes += SerialBT.write(
@@ -84,23 +88,34 @@ void loop() {
 
     bool _connected = SerialBT.hasClient();
 
-    if(connected != _connected) {
-        connected = _connected;
+    if(isConnected != _connected) {
+        isConnected = _connected;
 
-        if(connected) {
+        if(isConnected) {
             Serial.println("<Client Connected>");
         } else {
             Serial.println("<Client Disconnected>");
             unescape();
         }
-        digitalWrite(PIN_CONNECTED, connected);
+        digitalWrite(PIN_CONNECTED, isConnected);
+    }
+
+    bool _btKeyHigh = digitalRead(BT_KEY) == HIGH;
+    if(btKeyHigh != _btKeyHigh) {
+        btKeyHigh = _btKeyHigh;
+
+        if(btKeyHigh) {
+            Serial.println("<BtKey High>");
+        } else {
+            Serial.println("<BtKey Low>");
+        }
     }
 
     if(UCSerial.available()) {
         int read = UCSerial.read();
 
         if(read != -1) {
-            if(digitalRead(BT_KEY) == HIGH) {
+            if(btKeyHigh) {
                 // The uC is trying to send us a command; let's process
                 // it as such.
                 commandByte(read);
@@ -112,8 +127,7 @@ void loop() {
                         ucTx = true;
                         bridgeInit = true;
                     }
-                    Serial.print((char)read, HEX);
-                    Serial.print(' ');
+                    Serial.print((char)read);
                 }
 
                 sendBuffer += (char)read;
@@ -140,8 +154,7 @@ void loop() {
                         ucTx = false;
                         bridgeInit = true;
                     }
-                    Serial.print((char)read, HEX);
-                    Serial.print(' ');
+                    Serial.print((char)read);
                 }
                 UCSerial.write((char)read);
                 if(
