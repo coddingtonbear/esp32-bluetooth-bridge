@@ -8,7 +8,7 @@
 SerialCommand commands(&CmdSerial);
 
 bool connectedHigh = false;
-bool monitorEnabled = true;
+bool monitorEnabled = false;
 bool escapeEnabled = false;
 
 void setupCommands() {
